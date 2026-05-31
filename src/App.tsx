@@ -5,6 +5,12 @@
 
 import React from 'react';
 import { motion } from "motion/react";
+import { Document, Page, pdfjs } from 'react-pdf';
+import 'react-pdf/dist/Page/AnnotationLayer.css';
+import 'react-pdf/dist/Page/TextLayer.css';
+
+pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+
 import { 
   GraduationCap, 
   Languages, 
@@ -20,7 +26,10 @@ import {
   ExternalLink,
   ChevronRight,
   Sparkles,
-  FileText
+  FileText,
+  X,
+  ZoomIn,
+  ZoomOut
 } from "lucide-react";
 
 interface SectionProps {
@@ -42,7 +51,103 @@ const Section = ({ children, className = "", id }: SectionProps) => (
   </motion.section>
 );
 
+function PresentationViewer({ fileUrl }: { fileUrl: string }) {
+  const [numPages, setNumPages] = React.useState<number>(0);
+  const [pageNumber, setPageNumber] = React.useState<number>(1);
+  const [scale, setScale] = React.useState<number>(1);
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = React.useState<number>();
+
+  React.useEffect(() => {
+    if (!containerRef.current) return;
+    const observer = new ResizeObserver((entries) => {
+      setContainerWidth(entries[0].contentRect.width);
+    });
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
+    setNumPages(numPages);
+    setPageNumber(1);
+    setScale(1);
+  }
+
+  return (
+    <div className="flex flex-col w-full h-full min-h-[500px]" ref={containerRef}>
+      <div className="bg-stone-800 text-stone-200 py-3 px-4 flex flex-col sm:flex-row gap-3 justify-between items-center z-10 w-full rounded-t-xl font-mono text-sm border-b border-stone-700">
+        
+        {/* Zoom Controls */}
+        <div className="flex items-center gap-2 bg-stone-900 rounded p-1">
+          <button 
+            onClick={() => setScale(s => Math.max(0.5, +(s - 0.25).toFixed(2)))}
+            className="p-1 sm:p-1.5 bg-stone-700 hover:bg-stone-600 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+            disabled={scale <= 0.5}
+            title="縮小"
+          >
+            <ZoomOut className="w-4 h-4" />
+          </button>
+          <span className="w-12 text-center text-xs font-bold text-emerald-400">{Math.round(scale * 100)}%</span>
+          <button 
+            onClick={() => setScale(s => Math.min(3, +(s + 0.25).toFixed(2)))}
+            className="p-1 sm:p-1.5 bg-stone-700 hover:bg-stone-600 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+            disabled={scale >= 3}
+            title="放大"
+          >
+            <ZoomIn className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Pagination Controls */}
+        <div className="flex items-center gap-2 sm:gap-4">
+          <button 
+            onClick={() => setPageNumber(Math.max(1, pageNumber - 1))}
+            disabled={pageNumber <= 1}
+            className="px-3 sm:px-4 py-1.5 bg-stone-700 hover:bg-stone-600 disabled:opacity-30 disabled:hover:bg-stone-700 disabled:cursor-not-allowed rounded shadow-sm transition-all text-xs sm:text-sm"
+          >
+            上一頁 
+          </button>
+          <span className="font-bold tracking-widest text-stone-300 text-xs sm:text-sm">
+            <span className="text-emerald-400">{pageNumber}</span> / {numPages || '-'}
+          </span>
+          <button 
+            onClick={() => setPageNumber(Math.min(numPages, pageNumber + 1))}
+            disabled={pageNumber >= numPages}
+            className="px-3 sm:px-4 py-1.5 bg-stone-700 hover:bg-stone-600 disabled:opacity-30 disabled:hover:bg-stone-700 disabled:cursor-not-allowed rounded shadow-sm transition-all text-xs sm:text-sm"
+          >
+            下一頁 
+          </button>
+        </div>
+      </div>
+      <div className="flex-1 w-full bg-stone-100 flex items-start justify-center p-4 sm:p-8 overflow-auto min-h-[400px] sm:min-h-[500px]">
+        <Document
+          file={fileUrl}
+          onLoadSuccess={onDocumentLoadSuccess}
+          className="drop-shadow-2xl flex flex-col items-center"
+          loading={
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-stone-400 gap-4">
+              <FileText className="w-12 h-12 text-emerald-400 animate-pulse" />
+              <p className="font-bold tracking-widest uppercase">Loading Presentation...</p>
+            </div>
+          }
+        >
+          <Page 
+            pageNumber={pageNumber} 
+            width={containerWidth ? containerWidth - 32 : undefined} 
+            scale={scale}
+            renderTextLayer={false}
+            renderAnnotationLayer={false}
+            className="rounded-sm pointer-events-none transition-transform origin-top"
+          />
+        </Document>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
+  const [enlargedMedia, setEnlargedMedia] = React.useState<{type: 'image' | 'video', src: string, alt?: string} | null>(null);
+
   const languages = [
     { name: "英文 (English)", level: "精通", sub: "TOEIC 900" },
     { name: "日文 (Japanese)", level: "略懂", sub: "初級階段" },
@@ -172,7 +277,7 @@ export default function App() {
                 <div className="md:col-span-1">
                   <div className="aspect-[4/5] rounded-2xl bg-stone-100 border-4 border-white overflow-hidden shadow-2xl relative group">
                     <img 
-                      src="/profile.jpg.jpg" 
+                      src={`${import.meta.env.BASE_URL}profile.jpg.jpg`} 
                       alt="蔡詠丞" 
                       className="w-full h-full object-cover transition-all duration-700 group-hover:scale-110"
                       referrerPolicy="no-referrer"
@@ -432,35 +537,8 @@ export default function App() {
                     </div>
                   </div>
                   
-                  <div className="flex-1 rounded-xl overflow-hidden border border-stone-200 bg-stone-50 relative flex items-center justify-center group/pdf">
-                      <iframe 
-                        src="/Taitung_Slow_Travel_2024.pdf" 
-                        className="w-full h-full absolute inset-0 z-10" 
-                        title="台東慢活深度旅行簡報"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                        }} 
-                      />
-                      
-                      {/* Hover Overlay for Sandboxed Security Block workaround */}
-                      <div className="absolute inset-0 bg-stone-800/80 backdrop-blur-sm z-20 flex flex-col items-center justify-center opacity-0 group-hover/pdf:opacity-100 transition-opacity duration-300">
-                        <FileText className="w-16 h-16 text-emerald-400 mb-4" />
-                        <p className="text-white font-bold mb-6 text-lg">在預覽環境中 PDF 可能會被封鎖</p>
-                        <a 
-                          href="/Taitung_Slow_Travel_2024.pdf" 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="bg-emerald-500 text-white px-8 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-emerald-400 hover:scale-105 transition-all shadow-lg"
-                        >
-                          點此在新分頁完整開啟簡報 <ExternalLink className="w-5 h-5" />
-                        </a>
-                      </div>
-
-                      <div className="text-center p-6 z-0">
-                          <ExternalLink className="w-12 h-12 text-stone-300 mx-auto mb-4" />
-                          <p className="text-stone-500 font-bold mb-2">正在載入 PDF 簡報...</p>
-                          <p className="text-stone-400 text-xs">如果有顯示「Chrome 已封鎖這個網頁」<br/>可以將滑鼠移至此處開啟</p>
-                      </div>
+                  <div className="flex-1 rounded-xl overflow-hidden border border-stone-200 bg-stone-50 relative flex items-center justify-center">
+                      <PresentationViewer fileUrl={`${import.meta.env.BASE_URL}Taitung_Slow_Travel_2024.pdf`} />
                   </div>
                 </div>
               </div>
@@ -477,10 +555,10 @@ export default function App() {
                   
                   <div className="grid sm:grid-cols-2 gap-6">
                     {[
-                      { src: "/video1.mp4", title: "池上稻浪的視覺洗禮" },
-                      { src: "/video2.mp4", title: "城市綠洲與市區夜景" },
-                      { src: "/video3.mp4", title: "太平洋海岸與黃金之泉" },
-                      { src: "/video4.mp4", title: "絕美倒影與鐵道風光" }
+                      { src: `${import.meta.env.BASE_URL}video1.mp4`, title: "池上稻浪的視覺洗禮" },
+                      { src: `${import.meta.env.BASE_URL}video2.mp4`, title: "城市綠洲與市區夜景" },
+                      { src: `${import.meta.env.BASE_URL}video3.mp4`, title: "太平洋海岸與黃金之泉" },
+                      { src: `${import.meta.env.BASE_URL}video4.mp4`, title: "絕美倒影與鐵道風光" }
                     ].map((video, idx) => (
                       <div key={idx} className="flex flex-col gap-2">
                         <div className="rounded-xl overflow-hidden bg-stone-900 aspect-video relative border border-stone-200 shadow-sm flex items-center justify-center">
@@ -507,17 +585,25 @@ export default function App() {
                   <div className="grid md:grid-cols-3 gap-6 w-full">
                     {/* 3D Model Image */}
                     <div className="flex flex-col gap-3 items-center">
-                      <div className="w-full aspect-[3/4] rounded-2xl overflow-hidden bg-stone-50 border border-stone-200 shadow-inner flex items-center justify-center relative p-4 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+CjxyZWN0IHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCIgZmlsbD0iI2ZmZmZmZiIvPgo8Y2lyY2xlIGN4PSIxMCIgY3k9IjEwIiByPSIxIiBmaWxsPSIjZTFlMWUxIi8+Cjwvc3ZnPg==')]">
+                      <div 
+                        className="w-full aspect-[3/4] rounded-2xl overflow-hidden bg-stone-50 border border-stone-200 shadow-inner flex items-center justify-center relative p-4 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+CjxyZWN0IHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCIgZmlsbD0iI2ZmZmZmZiIvPgo8Y2lyY2xlIGN4PSIxMCIgY3k9IjEwIiByPSIxIiBmaWxsPSIjZTFlMWUxIi8+Cjwvc3ZnPg==')] cursor-pointer group"
+                        onClick={() => setEnlargedMedia({ type: 'image', src: `${import.meta.env.BASE_URL}3d-model.png`, alt: "個人3D模型靜態圖" })}
+                      >
                           <img 
-                            src="/3d-model.png" 
+                            src={`${import.meta.env.BASE_URL}3d-model.png`} 
                             alt="個人3D模型靜態圖" 
-                            className="w-full h-full object-contain z-10 relative drop-shadow-xl"
+                            className="w-full h-full object-contain z-10 relative drop-shadow-xl transition-transform duration-300 group-hover:scale-105"
                             onError={(e) => {
                               e.currentTarget.style.display = 'none';
                               e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                              e.currentTarget.parentElement?.classList.remove('cursor-pointer');
+                              e.currentTarget.parentElement!.onclick = null;
                             }}
                           />
-                          <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4 hidden">
+                          <div className="absolute inset-0 bg-stone-900/0 group-hover:bg-stone-900/10 transition-colors duration-300 z-20 flex items-center justify-center rounded-2xl pointer-events-none">
+                            <ZoomIn className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 drop-shadow-md pointer-events-none" />
+                          </div>
+                          <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4 hidden z-30 pointer-events-none">
                               <p className="text-stone-400 text-xs">缺少 <code>3d-model.png</code></p>
                           </div>
                       </div>
@@ -526,19 +612,27 @@ export default function App() {
 
                     {/* 3D Model Video */}
                     <div className="flex flex-col gap-3 items-center">
-                      <div className="w-full aspect-[3/4] rounded-2xl overflow-hidden bg-stone-900 border border-stone-200 shadow-inner flex items-center justify-center relative">
+                      <div 
+                        className="w-full aspect-[3/4] rounded-2xl overflow-hidden bg-stone-900 border border-stone-200 shadow-inner flex items-center justify-center relative cursor-pointer group"
+                        onClick={() => setEnlargedMedia({ type: 'video', src: `${import.meta.env.BASE_URL}model-spin.mp4` })}
+                      >
                           <video 
-                            src="/model-spin.mp4" 
-                            className="w-full h-full object-cover" 
+                            src={`${import.meta.env.BASE_URL}model-spin.mp4`} 
+                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" 
                             autoPlay loop muted playsInline
                             onError={(e) => {
                               e.currentTarget.style.display = 'none';
                               e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                              e.currentTarget.parentElement?.classList.remove('cursor-pointer');
+                              e.currentTarget.parentElement!.onclick = null;
                             }}
                           >
-                            <source src="/model-spin.mp4" type="video/mp4" />
+                            <source src={`${import.meta.env.BASE_URL}model-spin.mp4`} type="video/mp4" />
                           </video>
-                          <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4 hidden">
+                          <div className="absolute inset-0 bg-stone-900/0 group-hover:bg-stone-900/20 transition-colors duration-300 z-20 flex items-center justify-center rounded-2xl pointer-events-none">
+                            <ZoomIn className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 drop-shadow-md pointer-events-none" />
+                          </div>
+                          <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4 hidden z-30 pointer-events-none">
                               <p className="text-stone-500 text-xs">缺少 <code>model-spin.mp4</code></p>
                           </div>
                       </div>
@@ -547,17 +641,25 @@ export default function App() {
 
                     {/* Original Photo */}
                     <div className="flex flex-col gap-3 items-center">
-                      <div className="w-full aspect-[3/4] rounded-2xl overflow-hidden bg-stone-50 border border-stone-200 shadow-inner flex items-center justify-center relative">
+                      <div 
+                        className="w-full aspect-[3/4] rounded-2xl overflow-hidden bg-stone-50 border border-stone-200 shadow-inner flex items-center justify-center relative cursor-pointer group"
+                        onClick={() => setEnlargedMedia({ type: 'image', src: `${import.meta.env.BASE_URL}original-photo.jpg`, alt: "原始參考相片" })}
+                      >
                           <img 
-                            src="/original-photo.jpg" 
+                            src={`${import.meta.env.BASE_URL}original-photo.jpg`} 
                             alt="原始參考相片" 
-                            className="w-full h-full object-cover z-10 relative"
+                            className="w-full h-full object-cover z-10 relative transition-transform duration-300 group-hover:scale-105"
                             onError={(e) => {
                               e.currentTarget.style.display = 'none';
                               e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                              e.currentTarget.parentElement?.classList.remove('cursor-pointer');
+                              e.currentTarget.parentElement!.onclick = null;
                             }}
                           />
-                          <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4 hidden">
+                          <div className="absolute inset-0 bg-stone-900/0 group-hover:bg-stone-900/10 transition-colors duration-300 z-20 flex items-center justify-center rounded-2xl pointer-events-none">
+                            <ZoomIn className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 drop-shadow-md pointer-events-none" />
+                          </div>
+                          <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4 hidden z-30 pointer-events-none">
                               <p className="text-stone-400 text-xs">缺少 <code>original-photo.jpg</code></p>
                           </div>
                       </div>
@@ -608,6 +710,38 @@ export default function App() {
           </div>
         </div>
       </footer>
+
+      {/* Enlarged Media Modal */}
+      {enlargedMedia && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8 bg-stone-900/90 backdrop-blur-sm transition-opacity"
+          onClick={() => setEnlargedMedia(null)}
+        >
+          <div className="relative max-w-5xl w-full max-h-[90vh] flex items-center justify-center">
+            <button 
+              className="absolute -top-12 right-0 text-white hover:text-emerald-400 transition-colors bg-stone-800 p-2 rounded-full cursor-pointer"
+              onClick={() => setEnlargedMedia(null)}
+            >
+              <X className="w-6 h-6" />
+            </button>
+            {enlargedMedia.type === 'image' ? (
+              <img 
+                src={enlargedMedia.src} 
+                alt={enlargedMedia.alt || "Enlarged view"} 
+                className="max-w-full max-h-[85vh] object-contain rounded-[2rem] shadow-[0_0_50px_rgba(0,0,0,0.5)]"
+                onClick={(e) => e.stopPropagation()}
+              />
+            ) : (
+              <video 
+                src={enlargedMedia.src} 
+                className="max-w-full max-h-[85vh] object-contain rounded-[2rem] shadow-[0_0_50px_rgba(0,0,0,0.5)] bg-black" 
+                controls autoPlay loop playsInline
+                onClick={(e) => e.stopPropagation()}
+              />
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
