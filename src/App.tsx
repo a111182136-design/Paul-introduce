@@ -277,7 +277,7 @@ export default function App() {
                 <div className="md:col-span-1">
                   <div className="aspect-[4/5] rounded-2xl bg-stone-100 border-4 border-white overflow-hidden shadow-2xl relative group">
                     <img 
-                      src={`${import.meta.env.BASE_URL}profile.jpg.jpg`} 
+                      src={`${import.meta.env.BASE_URL}profile.jpg`} 
                       alt="蔡詠丞" 
                       className="w-full h-full object-cover transition-all duration-700 group-hover:scale-110"
                       referrerPolicy="no-referrer"
@@ -555,10 +555,10 @@ export default function App() {
                   
                   <div className="grid sm:grid-cols-2 gap-6">
                     {[
-                      { src: `${import.meta.env.BASE_URL}video1.mp4`, title: "池上稻浪的視覺洗禮" },
-                      { src: `${import.meta.env.BASE_URL}video2.mp4`, title: "城市綠洲與市區夜景" },
-                      { src: `${import.meta.env.BASE_URL}video3.mp4`, title: "太平洋海岸與黃金之泉" },
-                      { src: `${import.meta.env.BASE_URL}video4.mp4`, title: "絕美倒影與鐵道風光" }
+                      { src: `${import.meta.env.BASE_URL}video1.mp4.mp4`, title: "池上稻浪的視覺洗禮" },
+                      { src: `${import.meta.env.BASE_URL}video2.mp4.mp4`, title: "城市綠洲與市區夜景" },
+                      { src: `${import.meta.env.BASE_URL}video3.mp4.mp4`, title: "太平洋海岸與黃金之泉" },
+                      { src: `${import.meta.env.BASE_URL}video4.mp4.mp4`, title: "絕美倒影與鐵道風光" }
                     ].map((video, idx) => (
                       <div key={idx} className="flex flex-col gap-2">
                         <div className="rounded-xl overflow-hidden bg-stone-900 aspect-video relative border border-stone-200 shadow-sm flex items-center justify-center">
