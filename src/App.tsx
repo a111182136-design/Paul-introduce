@@ -275,14 +275,19 @@ export default function App() {
             <Section id="about" className="bg-white rounded-3xl my-10 shadow-xl shadow-stone-200/50 border border-stone-100 overflow-hidden">
               <div className="grid md:grid-cols-3 gap-16 items-center">
                 <div className="md:col-span-1">
-                  <div className="aspect-[4/5] rounded-2xl bg-stone-100 border-4 border-white overflow-hidden shadow-2xl relative group">
+                  <div 
+                    className="aspect-[4/5] rounded-2xl bg-stone-100 border-4 border-white overflow-hidden shadow-2xl relative cursor-pointer group"
+                    onClick={() => setEnlargedMedia({ type: 'image', src: `${import.meta.env.BASE_URL}profile.jpg`, alt: "蔡詠丞" })}
+                  >
                     <img 
                       src={`${import.meta.env.BASE_URL}profile.jpg`} 
                       alt="蔡詠丞" 
-                      className="w-full h-full object-cover transition-all duration-700 group-hover:scale-110"
+                      className="w-full h-full object-cover z-10 relative transition-transform duration-700 group-hover:scale-105"
                       referrerPolicy="no-referrer"
                     />
-                    <div className="absolute inset-0 bg-emerald-800/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="absolute inset-0 bg-stone-900/0 group-hover:bg-stone-900/10 transition-colors duration-300 z-20 flex items-center justify-center rounded-2xl pointer-events-none">
+                      <ZoomIn className="w-12 h-12 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 drop-shadow-md pointer-events-none" />
+                    </div>
                   </div>
                 </div>
                 <div className="md:col-span-2 py-4">
@@ -555,10 +560,10 @@ export default function App() {
                   
                   <div className="grid sm:grid-cols-2 gap-6">
                     {[
-                      { src: `${import.meta.env.BASE_URL}video1.mp4.mp4`, title: "池上稻浪的視覺洗禮" },
-                      { src: `${import.meta.env.BASE_URL}video2.mp4.mp4`, title: "城市綠洲與市區夜景" },
-                      { src: `${import.meta.env.BASE_URL}video3.mp4.mp4`, title: "太平洋海岸與黃金之泉" },
-                      { src: `${import.meta.env.BASE_URL}video4.mp4.mp4`, title: "絕美倒影與鐵道風光" }
+                      { src: `${import.meta.env.BASE_URL}video1.mp4`, title: "池上稻浪的視覺洗禮" },
+                      { src: `${import.meta.env.BASE_URL}video2.mp4`, title: "城市綠洲與市區夜景" },
+                      { src: `${import.meta.env.BASE_URL}video3.mp4`, title: "太平洋海岸與黃金之泉" },
+                      { src: `${import.meta.env.BASE_URL}video4.mp4`, title: "絕美倒影與鐵道風光" }
                     ].map((video, idx) => (
                       <div key={idx} className="flex flex-col gap-2">
                         <div className="rounded-xl overflow-hidden bg-stone-900 aspect-video relative border border-stone-200 shadow-sm flex items-center justify-center">
